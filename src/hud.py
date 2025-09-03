@@ -1,0 +1,1 @@
+# Draws on-screen overlay (e.g., NO FACE, EYES CLOSED, ALERT)
