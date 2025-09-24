@@ -1,4 +1,4 @@
-# drowsiness_detection_save_video.py
+# drowsiness_detection_save_video_webcam.py
 
 import cv2
 import mediapipe as mp
@@ -7,7 +7,6 @@ import numpy as np
 from collections import deque
 import os
 from datetime import datetime
-from picamera2 import Picamera2  # <-- Added import for PiCamera2
 
 
 class DrowsinessDetector:
@@ -106,15 +105,11 @@ class DrowsinessDetector:
 if __name__ == "__main__":
     detector = DrowsinessDetector(max_idle_time=5)
 
-    # ---------- Pi Camera Setup ----------
-    picam = Picamera2()
-    config = picam.create_preview_configuration(main={"format": "RGB888", "size": (640, 480)})
-    picam.configure(config)
-    picam.start()
-    time.sleep(0.1)
-
-    frame_width, frame_height = 640, 480
-    fps = 20  # Fixed FPS for Pi Camera
+    # ---------- Webcam Setup ----------
+    cap = cv2.VideoCapture(0)  # Use default webcam (index 0)
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = int(cap.get(cv2.CAP_PROP_FPS)) or 20  # fallback if fps=0
 
     # Timestamped filename in same folder as script
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -127,9 +122,10 @@ if __name__ == "__main__":
 
     print(f"Saving video to: {video_filename}")
 
-    while True:
-        frame = picam.capture_array()  # RGB frame from Pi camera
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)  # Convert RGB to BGR for OpenCV
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
 
         annotated_frame, is_drowsy, eye_dir = detector.detect_drowsiness(frame)
 
@@ -149,6 +145,6 @@ if __name__ == "__main__":
         if cv2.waitKey(1) & 0xFF == 27:  # ESC to exit
             break
 
-    picam.close()
+    cap.release()
     out.release()
     cv2.destroyAllWindows()
