@@ -4,6 +4,8 @@ import numpy as np
 import time
 import yaml
 import os
+import threading
+import pygame
 from vision.eyes import EyeDetector
 from vision.mouth import MouthDetector
 from vision.pose import PoseDetector
@@ -12,6 +14,11 @@ from metrics.nods import NodDetector
 from metrics.blinks import BlinkAnalyzer
 from metrics.yawn import YawnDetector
 from metrics.fuse import AttentionScorer
+from data_logger import DataLogger
+
+
+file_path = r"C:\Users\Gagana PC\Desktop\DIP\DIP-Driver-Drowsiness-Detection\siren-alert-96052.mp3"
+ 
 
 class DrowsinessDetectionSystem:
     """
@@ -346,6 +353,20 @@ class DrowsinessDetectionSystem:
         
         return dashboard
 
+def play_alert_sound(file_path):
+
+    def _play():
+        try:
+            if not pygame.mixer.get_init():
+                pygame.mixer.init()
+            pygame.mixer.music.load(file_path)
+            pygame.mixer.music.play()
+        except Exception as e:
+            print(f"Error playing alert sound: {e}")
+
+    threading.Thread(target=_play, daemon=True).start()        
+
+
 def main():
     """
     Main function to run the drowsiness detection system
@@ -359,6 +380,10 @@ def main():
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, system.config['camera']['height'])
     cap.set(cv2.CAP_PROP_FPS, system.config['camera']['fps'])
     
+    # Initialize data logger
+    logger = DataLogger()
+
+
     actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     actual_fps = cap.get(cv2.CAP_PROP_FPS)
@@ -388,6 +413,46 @@ def main():
             # Process frame through complete system
             results, display_frame = system.process_frame(frame)
             
+            # --- Event Logging ---
+            metrics = results['metrics_data']
+            vision_data = results['vision_data']
+            attention = results['attention_result']
+
+            # Initialize persistent variable for eye closure tracking
+            if not hasattr(system, "_eyes_closed_start"):
+                system._eyes_closed_start = None
+
+            # --- Yawn Event ---
+            if metrics['yawns'].get('new_yawn_detected', False):
+                logger.log_event("Yawn Detected", f"MAR={vision_data['mouth']['mar']:.2f}")
+
+            # --- Head Nod Event ---
+            if metrics['nods'].get('new_nod_detected', False):
+                logger.log_event("Head Nod Detected", f"Pitch={vision_data['pose']['pitch']:.1f}°")
+
+            # --- Head Tilt Event ---
+            if vision_data['pose']['head_orientation'] in ["LOOKING LEFT", "LOOKING RIGHT"]:
+                logger.log_event("Head Tilt Detected", f"Direction={vision_data['pose']['head_orientation']}")
+
+            # --- Eyes Closed >2s Event ---
+            ear_value = vision_data['eyes']['avg_ear']
+            ear_thresh = system.config['eyes']['ear_thresh']
+            if ear_value < ear_thresh:
+                if system._eyes_closed_start is None:
+                    system._eyes_closed_start = time.time()
+                else:
+                    duration = time.time() - system._eyes_closed_start
+                    if duration > 2.0:
+                        logger.log_event("Eyes Closed >2s", f"Duration={duration:.1f}s")
+                        system._eyes_closed_start = None  # reset timer after logging
+            else:
+                system._eyes_closed_start = None
+
+            # --- Drowsiness Detected Event ---
+            if attention['should_alert']:
+                logger.log_event("Drowsiness Detected", f"Attention Level={attention['attention_level']:.0f}%")
+
+
             # Draw professional dashboard
             dashboard = system.draw_dashboard(display_frame, results)
             
@@ -413,6 +478,9 @@ def main():
                 # Visual alert on screen
                 cv2.putText(combined, "DROWSINESS DETECTED!", 
                            (actual_width//2 - 150, 50), cv2.FONT_HERSHEY_DUPLEX, 1.0, (0, 0, 255), 3)
+                
+                # Play MP3/WAV alert sound
+                play_alert_sound(file_path)
             
             # Show the combined output
             cv2.imshow('Drowsiness Detection System', combined)

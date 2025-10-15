@@ -1,0 +1,4 @@
+Timestamp,Event Type,Details
+2025-10-15 15:48:46,Eyes Closed >2s,Duration=2.0s
+2025-10-15 15:49:06,Eyes Closed >2s,Duration=2.0s
+2025-10-15 15:49:07,Drowsiness Detected,Attention Level=40%
