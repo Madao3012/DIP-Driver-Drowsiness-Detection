@@ -1,0 +1,77 @@
+# Drowsiness Detection System Configuration
+# All parameters are easily tunable here
+
+landmarks:
+  backend: "mediapipe"   # swap to "onnx" later if needed
+  smooth_alpha: 0.7
+
+eyes:
+  ear_thresh: 0.23374658291698913
+  ear_time_thresh_s: 3.0
+  ema_alpha: 0.4
+  gaze_thresh: 0.018
+  gaze_time_thresh_s: 1.5
+
+mouth:
+  mar_thresh: 0.4141135633297335
+  yawn_min_duration_s: 0.6
+
+pose:
+  roll_thresh_deg: 3.896324332991764
+  pitch_thresh_deg: 7.03020858568526
+  yaw_thresh_deg: 5.565466762861723
+  deadzone_deg: 5.0
+  hold_time_s: 1.5
+
+perclos:
+  window_s: 45
+  closed_ear_thresh: 0.23374658291698913
+  tired_thresh: 0.25
+
+nods:
+  down_thresh_deg: 12.0
+  up_thresh_deg: 4.0
+  window_s: 60
+  count_for_drowsy: 3
+
+blinks:
+  min_separation_s: 0.2
+  max_duration_s: 0.4
+
+fusion:
+  weights:
+    perclos: 0.3954741250042581
+    nods: 0.04829135386177642
+    blinks: 0.1318247083347527
+    yawns: 0.42440981279921275
+  risk_threshold: 0.6
+
+alerts:
+  cooldown_s: 10
+  critical_threshold: 70
+  high_threshold: 60
+  medium_threshold: 40
+  low_threshold: 20
+
+camera:
+  width: 1280
+  height: 720
+  fps: 30
+  mirror_effect: true
+
+display:
+  dashboard_width: 400
+  show_landmarks: false
+  show_values: true
+  show_fps: true
+  colors:
+    background: [45, 45, 45]
+    text_primary: [255, 255, 255]
+    text_secondary: [200, 200, 200]
+    attention_good: [0, 200, 0]
+    attention_warning: [0, 200, 200]
+    attention_critical: [0, 0, 255]
+    metric_good: [100, 255, 100]
+    metric_warning: [255, 255, 100]
+    metric_critical: [255, 100, 100]
+    separator: [100, 100, 100]
