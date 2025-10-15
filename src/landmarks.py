@@ -1,1 +1,0 @@
-# Detects face and facial landmarks (eyes, mouth, pupils, etc.)

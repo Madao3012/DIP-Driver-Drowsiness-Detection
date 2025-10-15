@@ -1,1 +1,0 @@
-# Handles camera initialization, frame capture, FPS control
